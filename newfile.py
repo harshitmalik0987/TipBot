@@ -37,7 +37,7 @@ def setTronPK(pk):
 setTronPK(PK)
 
 
-updater = Updater(token='1652377156:AAFzZhHkxR1CamGgtVxEeLd4Hr7qeN0bBEY')
+updater = Updater(token='5464645214:AAFeBrA2M7-b8cJinfh3gbcmI2h5PHIQetw')
 dispatcher = updater.dispatcher
 
 import logging
