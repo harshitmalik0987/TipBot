@@ -37,7 +37,7 @@ def setTronPK(pk):
 setTronPK(PK)
 
 
-updater = Updater(token='5464645214:AAFeBrA2M7-b8cJinfh3gbcmI2h5PHIQetw')
+updater = Updater(token='5483801328:AAHyqqm3rt7kCLQmDf9IY7ZYbLTLBD1t8pI')
 dispatcher = updater.dispatcher
 
 import logging
@@ -84,8 +84,8 @@ def balance(update, context):
 
 def send(update, context):
     user = update.message.from_user.username
-    if user != "kratos_71" and user != "tron_apibot" :
-            update.effective_message.reply_text(text="You are not the Master - @NobitaNobi_420!!!\nGo create your own bot....")
+    if user != "kratos_71" and user != "tro_napibot" :
+            update.effective_message.reply_text(text="You are not the Master - @Kratos_71!!!\nGo and Contact bot owner....")
     else:
         target = update.message.text[6:]
         try:
