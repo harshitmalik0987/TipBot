@@ -18,7 +18,7 @@ full_node = 'https://api.trongrid.io'
 solidity_node = 'https://api.trongrid.io'
 event_server = 'https://api.trongrid.io'
 
-PK = "a9795907f31f554934efdf35383973e87e501ef333bf71b87c11cbf2b469c504"
+PK = "326f6c0f3c36688b1d898106e2ea5c6cecce5aac0052e7456d97324552c5102b"
 
 tron = Tron(full_node=full_node,
     solidity_node=solidity_node,
@@ -37,7 +37,7 @@ def setTronPK(pk):
 setTronPK(PK)
 
 
-updater = Updater(token='5483801328:AAHyqqm3rt7kCLQmDf9IY7ZYbLTLBD1t8pI')
+updater = Updater(token='5631960460:AAEwUW_wiuup_os5jH_ZQWCQWtsZmUJ-iHE')
 dispatcher = updater.dispatcher
 
 import logging
