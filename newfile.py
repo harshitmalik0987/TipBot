@@ -84,7 +84,7 @@ def balance(update, context):
 
 def send(update, context):
     user = update.message.from_user.username
-    if user != "kratos_71" and user != "tro_napibot" :
+    if user != "ankush_malik" and user != "tron_trx_tip_bot" :
             update.effective_message.reply_text(text="You are not the Master - @Kratos_71!!!\nGo and Contact bot owner....")
     else:
         target = update.message.text[6:]
