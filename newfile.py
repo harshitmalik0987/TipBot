@@ -20,63 +20,69 @@ target_channel = os.getenv('TARGET_CHANNEL', '@Govt_JobNotification')
 # Initialize Telethon client
 client = TelegramClient(session_file, api_id, api_hash)
 
+# Define the Telegram link pattern globally
+telegram_link_pattern = r'(?:https?://)?(?:telegram\.me|t\.me)/[A-Za-z0-9_]+'
+
 # Helper function to rewrite Telegram links to the target channel
 def rewrite_links(text: str, target_channel: str) -> str:
     """
     Rewrites any Telegram links in the text to point to the target channel.
-    
+
     Args:
-        text (str): The input text containing possible Telegram links
+        text (str): The input text with possible Telegram links
         target_channel (str): The target channel handle (e.g., '@channelname')
-    
+
     Returns:
         str: Text with rewritten links
     """
-    pattern = r'(?:https?://)?(?:telegram\.me|t\.me)/[A-Za-z0-9_]+'
     tc = target_channel.lstrip('@')
     replacement = f'https://t.me/{tc}'
-    return re.sub(pattern, replacement, text)
+    return re.sub(telegram_link_pattern, replacement, text)
 
-# Helper function to convert Markdown to HTML
-def convert_markdown_to_html(text: str) -> str:
+# Helper function to convert Markdown to plain text
+def convert_markdown_to_plain_text(text: str) -> str:
     """
-    Converts Markdown formatting in the text to HTML tags.
-    
+    Converts Markdown formatting in the text to plain text.
+
     Args:
         text (str): The input text with Markdown formatting
-    
+
     Returns:
-        str: Text with HTML formatting
+        str: Plain text with formatting removed
     """
-    text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', text)  # Bold
-    text = re.sub(r'__(.*?)__', r'<u>\1</u>', text)      # Underline
-    text = re.sub(r'\*(.*?)\*', r'<i>\1</i>', text)      # Italic
-    text = re.sub(r'`(.*?)`', r'<code>\1</code>', text)  # Code
-    text = re.sub(r'\[([^\]]+)\]\(([^)]+)\)', r'<a href="\2">\1</a>', text)  # Links
+    text = re.sub(r'\*\*(.*?)\*\*', r'\1', text)  # Remove bold
+    text = re.sub(r'__(.*?)__', r'\1', text)      # Remove underline
+    text = re.sub(r'\*(.*?)\*', r'\1', text)      # Remove italic
+    text = re.sub(r'`(.*?)`', r'\1', text)        # Remove code
+    text = re.sub(r'\[([^\]]+)\]\(([^)]+)\)', r'\1', text)  # Remove link markup, keep text
     return text
 
 # Event handler for new messages in source channels
 @client.on(events.NewMessage(chats=source_channels))
 async def forward_message(event):
     """
-    Forwards messages from source channels to the target channel, processing text and media.
-    
+    Forwards messages from source channels to the target channel, processing text only if links are present.
+
     Args:
         event: The Telethon event object containing the message details
     """
     text = event.raw_text or ''
     media = event.message.media
 
-    # Process the text: rewrite links and convert to HTML
-    text = rewrite_links(text, target_channel)
-    html = convert_markdown_to_html(text)
+    # Process the text: rewrite links and convert to plain text
+    processed_text = rewrite_links(text, target_channel)
+    plain_text = convert_markdown_to_plain_text(processed_text)
 
-    # Forward the message with or without media
-    if not media:
-        await client.send_message(target_channel, html, parse_mode='HTML')
-    else:
-        data = await client.download_media(media, file=bytes)
-        await client.send_file(target_channel, data, caption=html, parse_mode='HTML')
+    try:
+        if not media or (media and re.search(telegram_link_pattern, text)):
+            # Send only text if there's no media or if there's a Telegram link
+            await client.send_message(target_channel, plain_text, parse_mode=None)
+        else:
+            # Send media with caption if there's media and no Telegram links
+            data = await client.download_media(media, file=bytes)
+            await client.send_file(target_channel, data, caption=plain_text, parse_mode=None)
+    except Exception as e:
+        print(f"Error processing message: {e}")
 
 # Main entry point
 async def main():
