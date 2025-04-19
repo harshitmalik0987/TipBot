@@ -2,6 +2,7 @@ import os
 import nest_asyncio
 import asyncio
 import re
+import logging
 from telethon import TelegramClient, events
 
 # Allow multiple async frameworks in one loop
@@ -68,6 +69,8 @@ async def forward_message(event):
     """
     text = event.raw_text or ''
     media = event.message.media
+    channel = event.chat.username or event.chat.id
+    logging.info(f"Received message from {channel}: {text}")
 
     # Process the text: rewrite links and convert to plain text
     processed_text = rewrite_links(text, target_channel)
@@ -77,19 +80,24 @@ async def forward_message(event):
         if not media or (media and re.search(telegram_link_pattern, text)):
             # Send only text if there's no media or if there's a Telegram link
             await client.send_message(target_channel, plain_text, parse_mode=None)
+            logging.info(f"Sent text-only message to {target_channel}")
         else:
             # Send media with caption if there's media and no Telegram links
             data = await client.download_media(media, file=bytes)
             await client.send_file(target_channel, data, caption=plain_text, parse_mode=None)
+            logging.info(f"Sent media with caption to {target_channel}")
     except Exception as e:
-        print(f"Error processing message: {e}")
+        logging.error(f"Error processing message from {channel}: {e}")
 
 # Main entry point
 async def main():
     """Starts the Telegram client and keeps it running."""
     await client.start()
-    print(f"Bot running. Listening on {source_channels}")
+    logging.info(f"Bot started. Listening to: {source_channels}")
     await client.run_until_disconnected()
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
 
 # Run the bot
 if __name__ == '__main__':
