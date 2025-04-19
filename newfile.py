@@ -1,109 +1,41 @@
-import os import nest_asyncio import asyncio import re from telethon import TelegramClient, events from telegram.ext import Application, CommandHandler from telegram import Bot
+import os import nest_asyncio import asyncio import re from telethon import TelegramClient, events
 
-=== Apply nest_asyncio to allow multiple frameworks in the same event loop ===
+=== Allow multiple async frameworks in one loop ===
 
 nest_asyncio.apply()
 
-=== Telethon Auth (using environment variables with defaults for testing) ===
+=== Configuration ===
 
-api_id = int(os.getenv('TELEGRAM_API_ID', '22001404')) api_hash = os.getenv('TELEGRAM_API_HASH', 'b1657c62edd096e74bfd1de603909b02') source_channels = ['@speedjobs', '@haryana_jobs_in', '@pubg_accounts_buy_sell', '@haryanaschemes'] target_channel = '@Govt_JobNotification'
+api_id = int(os.getenv('TELEGRAM_API_ID', '22001404')) api_hash = os.getenv('TELEGRAM_API_HASH', 'b1657c62edd096e74bfd1de603909b02') session_file = os.getenv('SESSION_FILE', 'user_session.session') source_channels = os.getenv( 'SOURCE_CHANNELS', '@speedjobs,@haryana_jobs_in,@pubg_accounts_buy_sell,@haryanaschemes' ).split(',') target_channel = os.getenv('TARGET_CHANNEL', '@Govt_JobNotification')
 
-=== Create Telethon client ===
+=== Initialize Telethon client ===
 
-client = TelegramClient('user_session', api_id, api_hash)
+client = TelegramClient(session_file, api_id, api_hash)
 
-=== Setup python-telegram-bot (using environment variables with defaults) ===
+=== Helper: Rewrite any telegram links to target channel ===
 
-BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN', '7919514003:AAGMyAgcNc3dDkLo794OCSXkhfIiqQ2Ai9Y') bot = Bot(token=BOT_TOKEN)
+def rewrite_links(text: str) -> str: pattern = r'https?://(?:telegram.me|t.me)/[A-Za-z0-9_]+' tc = target_channel.lstrip('@') replacement = f'https://t.me/{tc}' return re.sub(pattern, replacement, text)
 
-=== Link Rewriting ===
+=== Helper: Convert Markdown to HTML ===
 
-def rewrite_links(text): """ Replace any telegram.me or t.me links in the text with the target channel link. """ pattern = r'https?://(?:telegram.me|t.me)/[A-Za-z0-9_]+' replacement = f'https://t.me/{target_channel.lstrip("@")}'' return re.sub(pattern, replacement, text)
+def convert_markdown_to_html(text: str) -> str: text = re.sub(r'**(.?)**', r'<b>\1</b>', text) text = re.sub(r'__(.?)__', r'<u>\1</u>', text) text = re.sub(r'(.*?)', r'<i>\1</i>', text) text = re.sub(r'(.*?)', r'<code>\1</code>', text) text = re.sub(r'', r'<a href="\2">\1</a>', text) return text
 
-=== Markdown to HTML conversion ===
+=== Handler: on new message in any source channel ===
 
-def convert_markdown_to_html(text): # Bold text = re.sub(r'**(.?)**', r'<b>\1</b>', text) # Underline text = re.sub(r'__(.?)__', r'<u>\1</u>', text) # Italic text = re.sub(r'(.*?)', r'<i>\1</i>', text) # Inline code text = re.sub(r'(.*?)', r'<code>\1</code>', text) # Links text = re.sub(r'', r'<a href="\2">\1</a>', text) return text
+@client.on(events.NewMessage(chats=source_channels)) async def forward_message(event): text = event.raw_text or '' media = event.message.media
 
-=== Message Forwarding Handler ===
+# Rewrite links and convert formatting
+text = rewrite_links(text)
+html = convert_markdown_to_html(text)
 
-@client.on(events.NewMessage(chats=source_channels)) async def forward_message(event): try: message = event.message text = message.text or "" media = message.media
+if not media:
+    await client.send_message(target_channel, html, parse_mode='HTML')
+else:
+    data = await client.download_media(media, file=bytes)
+    await client.send_file(target_channel, data, caption=html, parse_mode='HTML')
 
-# Rewrite any source links
-    text = rewrite_links(text)
+=== Entry point ===
 
-    # Resolve target channel ID
-    target = await bot.get_chat(target_channel)
+async def main(): await client.start() print(f"Bot running. Listening on {source_channels}") await client.run_until_disconnected()
 
-    # Convert Markdown to HTML
-    formatted_body = convert_markdown_to_html(text)
-    formatted_text = formatted_body if text else ""
-
-    # Send text or empty alert if no media
-    if text or not media:
-        await bot.send_message(
-            chat_id=target.id,
-            text=formatted_text,
-            parse_mode='HTML'
-        )
-
-    # Handle media if present
-    if media:
-        file = await client.download_media(media, file=bytes)
-        if hasattr(media, 'photo'):
-            await bot.send_photo(
-                chat_id=target.id,
-                photo=file,
-                caption=formatted_text,
-                parse_mode='HTML'
-            )
-        elif hasattr(media, 'document'):
-            await bot.send_document(
-                chat_id=target.id,
-                document=file,
-                caption=formatted_text,
-                parse_mode='HTML'
-            )
-        elif hasattr(media, 'video'):
-            await bot.send_video(
-                chat_id=target.id,
-                video=file,
-                caption=formatted_text,
-                parse_mode='HTML'
-            )
-        else:
-            print(f"Unsupported media type: {type(media)}")
-
-    print(f"Message sent to {target_channel}.")
-except Exception as e:
-    print(f"Error sending message: {e}")
-
-=== Command Handler ===
-
-async def start(update, context): await update.message.reply_text("Hello, I'm your bot!")
-
-=== Build and Configure the Application ===
-
-application = Application.builder().token(BOT_TOKEN).build() application.add_handler(CommandHandler("start", start))
-
-=== Unified Async Main Loop ===
-
-async def main(): try: # Start Telethon client await client.start() print("Telethon client started.")
-
-# Initialize and start the Application
-    await application.initialize()
-    await application.start()
-    print("Python-telegram-bot application started.")
-
-    # Keep the script running with Telethon
-    await client.run_until_disconnected()
-except Exception as e:
-    print(f"Error in main loop: {e}")
-finally:
-    # Ensure clean shutdown
-    await application.stop()
-    print("Application stopped.")
-
-=== Run the Application ===
-
-if name == 'main': try: loop = asyncio.get_event_loop() loop.run_until_complete(main()) except KeyboardInterrupt: print("Program terminated by user.") except Exception as e: print(f"Unexpected error: {e}")
-
+if name == 'main': asyncio.run(main())
