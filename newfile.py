@@ -70,13 +70,23 @@ async def forward_message(event):
         sent_msg = None
 
         if photo:
-            # Send photo with caption
-            sent_msg = await client.send_message(target_entity, processed_text, link_preview=False)
+            # Send photo with caption and no link preview
+            sent_msg = await client.send_file(
+                target_entity,
+                file=photo,
+                caption=processed_text,
+                link_preview=False
+            )
+        elif media:
             logging.info("Skipped non-photo media.")
             return
         else:
-            # Send text message
-            sent_msg = await client.send_message(target_entity, processed_text)
+            # Send text message with no link preview
+            sent_msg = await client.send_message(
+                target_entity,
+                processed_text,
+                link_preview=False
+            )
 
         # Get link of the posted message in the target channel
         if sent_msg:
