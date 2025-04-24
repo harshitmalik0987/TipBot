@@ -71,8 +71,7 @@ async def forward_message(event):
 
         if photo:
             # Send photo with caption
-            sent_msg = await client.send_file(target_entity, file=photo, caption=processed_text)
-        elif media:
+            sent_msg = await client.send_message(target_entity, processed_text, link_preview=False)
             logging.info("Skipped non-photo media.")
             return
         else:
