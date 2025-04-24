@@ -21,8 +21,9 @@ target_channel = os.getenv('TARGET_CHANNEL', '@Govt_JobNotification')
 # Initialize Telethon client
 client = TelegramClient(session_file, api_id, api_hash)
 
-# Define the Telegram link pattern globally
+# Define the Telegram link pattern and specific phrase globally
 telegram_link_pattern = r'(?:https?://)?(?:telegram\.me|t\.me)/[A-Za-z0-9_]+'
+specific_phrase = "Join Our Telegram Group for Fast Update http://telegram.me/speedjobs"
 
 # Helper function to rewrite Telegram links to the target channel
 def rewrite_links(text: str, target_channel: str) -> str:
@@ -62,7 +63,7 @@ def convert_markdown_to_plain_text(text: str) -> str:
 @client.on(events.NewMessage(chats=source_channels))
 async def forward_message(event):
     """
-    Forwards messages from source channels to the target channel, processing text only if links or media are present.
+    Forwards messages from source channels to the target channel, processing text and appending a message if needed.
 
     Args:
         event: The Telethon event object containing the message details
@@ -72,9 +73,16 @@ async def forward_message(event):
     channel = event.chat.username or str(event.chat.id)
     logging.info(f"Received from {channel}: Text='{text}', Has Media={bool(media)}")
 
+    # Check if the specific phrase is in the original text
+    has_phrase = specific_phrase in text
+
     # Process the text: rewrite links and convert to plain text
     processed_text = rewrite_links(text, target_channel)
     plain_text = convert_markdown_to_plain_text(processed_text)
+
+    # Append the message if the specific phrase is not present and there is text
+    if not has_phrase and text.strip():
+        plain_text += "\n\nJoin Our Telegram Group for Fast Update https://t.me/Govt_JobNotification"
 
     try:
         if media and re.search(telegram_link_pattern, text):
@@ -82,7 +90,7 @@ async def forward_message(event):
             await client.send_message(target_channel, plain_text, parse_mode=None)
             logging.info(f"Sent text-only (link detected) to {target_channel}: {plain_text}")
         elif media and not text.strip():
-            # If only a photo is sent (no text), skip forwarding (or handle as needed)
+            # If only a photo is sent (no text), skip forwarding
             logging.info(f"Skipped photo-only message from {channel}")
         else:
             # Forward text-only messages or text with media (no links)
