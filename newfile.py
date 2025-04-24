@@ -21,81 +21,54 @@ target_channel = os.getenv('TARGET_CHANNEL', '@Govt_JobNotification')
 # Initialize Telethon client
 client = TelegramClient(session_file, api_id, api_hash)
 
-# Define the Telegram link pattern and specific phrase globally
+# Define the Telegram link pattern
 telegram_link_pattern = r'(?:https?://)?(?:telegram\.me|t\.me)/[A-Za-z0-9_]+'
-specific_phrase = "Join Our Telegram Group for Fast Update http://telegram.me/speedjobs"
+
+# Define the pattern to detect "Join Our Telegram Group for Fast Update" with any Telegram link
+join_message_pattern = r'Join Our Telegram Group for Fast Update\s*' + telegram_link_pattern
 
 # Helper function to rewrite Telegram links to the target channel
 def rewrite_links(text: str, target_channel: str) -> str:
     """
     Rewrites any Telegram links in the text to point to the target channel.
-
-    Args:
-        text (str): The input text with possible Telegram links
-        target_channel (str): The target channel handle (e.g., '@channelname')
-
-    Returns:
-        str: Text with rewritten links
     """
     tc = target_channel.lstrip('@')
     replacement = f'https://t.me/{tc}'
     return re.sub(telegram_link_pattern, replacement, text)
 
-# Helper function to convert Markdown to plain text
-def convert_markdown_to_plain_text(text: str) -> str:
-    """
-    Converts Markdown formatting in the text to plain text.
-
-    Args:
-        text (str): The input text with Markdown formatting
-
-    Returns:
-        str: Plain text with formatting removed
-    """
-    text = re.sub(r'\*\*(.*?)\*\*', r'\1', text)  # Remove bold
-    text = re.sub(r'__(.*?)__', r'\1', text)      # Remove underline
-    text = re.sub(r'\*(.*?)\*', r'\1', text)      # Remove italic
-    text = re.sub(r'`(.*?)`', r'\1', text)        # Remove code
-    text = re.sub(r'\[([^\]]+)\]\(([^)]+)\)', r'\1', text)  # Remove link markup, keep text
-    return text
-
 # Event handler for new messages in source channels
 @client.on(events.NewMessage(chats=source_channels))
 async def forward_message(event):
     """
-    Forwards messages from source channels to the target channel, processing text and appending a message if needed.
-
-    Args:
-        event: The Telethon event object containing the message details
+    Forwards messages from source channels to the target channel, processing text as needed.
     """
     text = event.raw_text or ''
     media = event.message.media
     channel = event.chat.username or str(event.chat.id)
     logging.info(f"Received from {channel}: Text='{text}', Has Media={bool(media)}")
 
-    # Check if the specific phrase is in the original text
-    has_phrase = specific_phrase in text
+    # Check if the text contains "Join Our Telegram Group for Fast Update" with any Telegram link
+    has_join_message = re.search(join_message_pattern, text) is not None
 
-    # Process the text: rewrite links and convert to plain text
+    # Rewrite any Telegram links to the target channel
     processed_text = rewrite_links(text, target_channel)
-    plain_text = convert_markdown_to_plain_text(processed_text)
 
-    # Append the message if the specific phrase is not present and there is text
-    if not has_phrase and text.strip():
-        plain_text += "\n\nJoin Our Telegram Group for Fast Update https://t.me/Govt_JobNotification"
+    # Append the message only if the pattern is not present and there is text
+    if not has_join_message and text.strip():
+        processed_text += "\n\nJoin Our Telegram Group for Fast Update https://t.me/Govt_JobNotification"
 
     try:
         if media and re.search(telegram_link_pattern, text):
             # If media and a Telegram link are present, send only text and discard media
-            await client.send_message(target_channel, plain_text, parse_mode=None)
-            logging.info(f"Sent text-only (link detected) to {target_channel}: {plain_text}")
+            await client.send_message(target_channel, processed_text, parse_mode=None)
+            logging.info(f"Sent text-only (link detected) to {target_channel}: {processed_text}")
         elif media and not text.strip():
             # If only a photo is sent (no text), skip forwarding
             logging.info(f"Skipped photo-only message from {channel}")
         else:
             # Forward text-only messages or text with media (no links)
-            await client.send_message(target_channel, plain_text, parse_mode=None)
-            logging.info(f"Sent text to {target_channel}: {plain_text}")
+            await client.send_message(target_channel, processed_text, parse_mode=None)
+            logging.info(f"Sent text to {target_channel}: {processed_text}")
     except Exception as e:
         logging.error(f"Error processing message from {channel}: {e}")
 
