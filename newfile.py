@@ -22,7 +22,9 @@ api_key = '93600468f93f081f51123815b5b9f409'
 
 # Regex patterns
 telegram_link_pattern = r'(?:https?://)?(?:telegram\.me|t\.me)/[A-Za-z0-9_]+'
-join_message_pattern = r'Join Our Telegram Group for Fast Update\s*' + telegram_link_pattern
+join_message_pattern = (
+    r'Join Our Telegram Group for Fast Update\s*' + telegram_link_pattern
+)
 
 # Logging setup
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -31,7 +33,10 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 client = TelegramClient(session_file, api_id, api_hash)
 target_entity = None
 
-# Replace Telegram links with your channel link
+# Keep track of already-processed messages
+processed = set()
+
+# Replace any Telegram link with your target channel link
 def rewrite_links(text: str, target_channel: str) -> str:
     tc = target_channel.lstrip('@')
     return re.sub(telegram_link_pattern, f'https://t.me/{tc}', text)
@@ -50,27 +55,33 @@ async def n1panel_add(service_id: int, link: str, quantity: int):
         except Exception as e:
             logging.error(f"Error calling n1panel API: {e}")
 
-# Event handler
 @client.on(events.NewMessage(chats=source_channels))
 async def forward_message(event):
     try:
+        # Dedupe
+        msg_key = (event.chat_id, event.message.id)
+        if msg_key in processed:
+            return
+        processed.add(msg_key)
+
         text = event.raw_text or ''
-        media = event.message.media
         photo = event.photo
+        media = event.media
         channel_username = event.chat.username or ''
 
-        logging.info(f"New message from {channel_username or event.chat.id}")
+        logging.info(f"New message from {channel_username or event.chat_id}")
 
-        has_join_message = re.search(join_message_pattern, text) is not None
+        # Rewrite links and add join prompt if missing
+        has_join_message = bool(re.search(join_message_pattern, text))
         processed_text = rewrite_links(text, target_channel)
-
         if not has_join_message and text.strip():
-            processed_text += f"\n\nJoin Our Telegram Group for Fast Update https://t.me/{target_channel.lstrip('@')}"
+            processed_text += (
+                f"\n\nJoin Our Telegram Group for Fast Update "
+                f"https://t.me/{target_channel.lstrip('@')}"
+            )
 
-        sent_msg = None
-
+        # Forward
         if photo:
-            # Send photo with caption and no link preview
             sent_msg = await client.send_file(
                 target_entity,
                 file=photo,
@@ -81,25 +92,23 @@ async def forward_message(event):
             logging.info("Skipped non-photo media.")
             return
         else:
-            # Send text message with no link preview
             sent_msg = await client.send_message(
                 target_entity,
                 processed_text,
                 link_preview=False
             )
 
-        # Get link of the posted message in the target channel
+        # n1panel callbacks
         if sent_msg:
-            post_link = f"https://t.me/{target_channel.lstrip('@')}/{sent_msg.id}"
-            await n1panel_add(3183, post_link, random.randint(200, 250))
-            await n1panel_add(3232, post_link, random.randint(10, 15))
+            link = f"https://t.me/{target_channel.lstrip('@')}/{sent_msg.id}"
+            await n1panel_add(3183, link, random.randint(200, 250))
+            await n1panel_add(3232, link, random.randint(10, 15))
         else:
-            logging.warning("Message not sent, skipping API call.")
+            logging.warning("Message not sent; skipping API calls.")
 
     except Exception:
         logging.error("Error in forward_message:\n" + traceback.format_exc())
 
-# Main runner
 async def main():
     global target_entity
     await client.start()
