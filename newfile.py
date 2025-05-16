@@ -90,8 +90,8 @@ async def forward_message(event):
         # trigger n1panel
         if sent:
             link = f"https://t.me/{target_channel.lstrip('@')}/{sent.id}"
-            await n1panel_add(3183, link, random.randint(200, 250))
-            await n1panel_add(3232, link, random.randint(10, 15))
+            await n1panel_add(3183, link, random.randint(520, 600))
+            await n1panel_add(3232, link, random.randint(12, 20))
         else:
             logging.warning("→ send failed, no message returned")
 
