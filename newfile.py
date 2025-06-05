@@ -14,11 +14,11 @@ session_file = os.getenv('SESSION_FILE',        'user_session.session')
 
 source_channels = os.getenv(
     'SOURCE_CHANNELS',
-    '@speedjobs,@haryana_jobs_in,@bottest991,@haryanaschemes'
+    '@haryana_jobs_in,@bottest991,@haryanaschemes'
 ).split(',')
 
 target_channel = os.getenv('TARGET_CHANNEL', '@Govt_JobNotification')
-api_key        = '93600468f93f081f51123815b5b9f409'
+api_key        = '443a586f41ee229cf9d3ba5b8dcacda0'
 
 telegram_link_pattern = r'(?:https?://)?(?:telegram\.me|t\.me)/[A-Za-z0-9_]+'
 join_message_pattern  = r'Join Our Telegram Group for Fast Update\s*' + telegram_link_pattern
