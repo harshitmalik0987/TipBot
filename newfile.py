@@ -11,41 +11,41 @@ SESSIONS = [
     {
         'name': 'Ankush',
         'session_file': 'ankush.session',
-        'api_id': 7536366,
-        'api_hash': '1ef0b51ab5b66fed13641d981ccb8389',
-        'phone': '+919991207538',
+        'api_id': 7530066,
+        'api_hash': '1ef0b51ab5b66fed8813641d981ccb8389',
+        'phone': '+9191207538',
         'is_main': True
     },
     {
         'name': 'Levi',
         'session_file': 'levi.session',
-        'api_id': 24440214,
-        'api_hash': 'b0a59a887f0f6fde4e3c3990f627a7b1',
-        'phone': '+919050247534',
+        'api_id': 24446914,
+        'api_hash': 'b0a59a887f0f799e4e3c3990f627a7b1',
+        'phone': '+9190247534',
         'is_main': False
     },
     {
         'name': 'CoderNinja',
         'session_file': 'coderninja.session',
-        'api_id': 22815674,
-        'api_hash': '3aa83fb0fe83164b9fee00a1d0b31e5f',
-        'phone': '+919350050226',
+        'api_id': 22813574,
+        'api_hash': '3aa83fb0fe83164972ee00a1d0b31e5f',
+        'phone': '+9193050226',
         'is_main': False
     },
     {
         'name': 'AsianGamer',
         'session_file': 'asiangamer.session',
-        'api_id': 22001404,
-        'api_hash': 'b1657c62edd096e74bfd1de603909b02',
-        'phone': '+919354950340',
+        'api_id': 22002404,
+        'api_hash': 'b1657c62edd096e7963d1de603909b02',
+        'phone': '+9193540340',
         'is_main': False
     },
     {
         'name': 'Ninja',
         'session_file': 'ninja.session',
-        'api_id': 14039017,
-        'api_hash': '68996f618f44f1a841f831419868b77a',
-        'phone': '+918053622115',
+        'api_id': 14033717,
+        'api_hash': '68996f618f44731841f831419868b77a',
+        'phone': '+9180536115',
         'is_main': False
     },
 ]
@@ -56,9 +56,9 @@ TARGET_CHANNEL = '@GovtJobAIert'
 FORWARD_DELAY = 2  # seconds between forwards
 
 # TinyURL tokens
-TINYAPI_TOKEN1 = '19XBdAqwgXa1HdR2lV8XHOYxccCvZ0Yvd9u49F9vHSfRmrgjsqTuFxqyehOH'
-TINYAPI_TOKEN2 = 'q1Z1dJrKI9kriIr391DbdcV1z56w9IYxOsN1RNLmCDah9Xl7STkNkM1CGfwv'
-TINYAPI_TOKEN3 = 'ujI6352RQVrBRhFj63iwPLVvvpmARzezodG6NxCas4PSasij2TxsMLai6K11'
+TINYAPI_TOKEN1 = '19XBdAqwgXa1HdR2lV8XH946ccCvZ0Yvd9u49F9vHSfRmrgjsqTuFxqyehOH'
+TINYAPI_TOKEN2 = 'q1Z1dJrKI9kriIr391D764V1z56w9IYxOsN1RNLmCDah9Xl7STkNkM1CGfwv'
+TINYAPI_TOKEN3 = 'ujI6352RQVrBRhFj64976PLVvvpmARzezodG6NxCas4PSasij2TxsMLai6K11'
 
 # Patterns
 LINK_PATTERN = re.compile(r"https?://[A-Za-z0-9./?=-]+")
