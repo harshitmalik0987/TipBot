@@ -13,7 +13,7 @@ SESSIONS = [
         'session_file': 'ankush.session',
         'api_id': 7530066,
         'api_hash': '1ef0b51ab5b66fed8813641d981ccb8389',
-        'phone': '+9191207538',
+        'phone': '+919991207538',
         'is_main': True
     },
     {
@@ -21,15 +21,7 @@ SESSIONS = [
         'session_file': 'levi.session',
         'api_id': 24446914,
         'api_hash': 'b0a59a887f0f799e4e3c3990f627a7b1',
-        'phone': '+9190247534',
-        'is_main': False
-    },
-    {
-        'name': 'CoderNinja',
-        'session_file': 'coderninja.session',
-        'api_id': 22813574,
-        'api_hash': '3aa83fb0fe83164972ee00a1d0b31e5f',
-        'phone': '+9193050226',
+        'phone': '+919050247534',
         'is_main': False
     },
     {
@@ -37,7 +29,7 @@ SESSIONS = [
         'session_file': 'asiangamer.session',
         'api_id': 22002404,
         'api_hash': 'b1657c62edd096e7963d1de603909b02',
-        'phone': '+9193540340',
+        'phone': '+919354950340',
         'is_main': False
     },
     {
@@ -45,7 +37,7 @@ SESSIONS = [
         'session_file': 'ninja.session',
         'api_id': 14033717,
         'api_hash': '68996f618f44731841f831419868b77a',
-        'phone': '+9180536115',
+        'phone': '+918053622115',
         'is_main': False
     },
 ]
