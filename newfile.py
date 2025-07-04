@@ -1,4 +1,3 @@
-
 import asyncio
 import logging
 import re
@@ -6,46 +5,18 @@ import aiohttp
 from telethon import TelegramClient, events
 from telethon.errors import RPCError, SessionPasswordNeededError
 
-# Configuration
-SESSIONS = [
-    {
-        'name': 'Ankush',
-        'session_file': 'ankush.session',
-        'api_id': 7530066,
-        'api_hash': '1ef0b51ab5b66fed8813641d981ccb8389',
-        'phone': '+919991207538',
-        'is_main': True
-    },
-    {
-        'name': 'Levi',
-        'session_file': 'levi.session',
-        'api_id': 24446914,
-        'api_hash': 'b0a59a887f0f799e4e3c3990f627a7b1',
-        'phone': '+919050247534',
-        'is_main': False
-    },
-    {
-        'name': 'AsianGamer',
-        'session_file': 'asiangamer.session',
-        'api_id': 22002404,
-        'api_hash': 'b1657c62edd096e7963d1de603909b02',
-        'phone': '+919354950340',
-        'is_main': False
-    },
-    {
-        'name': 'Ninja',
-        'session_file': 'ninja.session',
-        'api_id': 14033717,
-        'api_hash': '68996f618f44731841f831419868b77a',
-        'phone': '+918053622115',
-        'is_main': False
-    },
-]
+# Configuration for only Ankush Malik
+SESSION = {
+    'name': 'Ankush',
+    'session_file': 'ankush.session',
+    'api_id': 7536366,
+    'api_hash': '1ef0b51ab5b66fed13641d981ccb8389',
+    'phone': '+919991207538'
+}
 
 # Source and target channels
 SOURCE_CHANNELS = ['@bottest991', '@haryanaschemes', '@speedjobs']
 TARGET_CHANNEL = '@GovtJobAIert'
-FORWARD_DELAY = 2  # seconds between forwards
 
 # TinyURL tokens
 TINYAPI_TOKEN1 = '19XBdAqwgXa1HdR2lV8XH946ccCvZ0Yvd9u49F9vHSfRmrgjsqTuFxqyehOH'
@@ -55,21 +26,14 @@ TINYAPI_TOKEN3 = 'ujI6352RQVrBRhFj64976PLVvvpmARzezodG6NxCas4PSasij2TxsMLai6K11'
 # Patterns
 LINK_PATTERN = re.compile(r"https?://[A-Za-z0-9./?=-]+")
 TME_PATTERN = re.compile(r"(?:https?://)?(?:t.me|telegram.me)/[A-Za-z0-9]+")
-JOIN_PROMPT = re.compile(r"Join Our Telegram Group.*", re.IGNORECASE)
-
-# Deduplication cache
-processed_notices = set()
 
 # Logging config
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-# Instantiate clients
-dispatchers = []
-for cfg in SESSIONS:
-    client = TelegramClient(cfg['session_file'], cfg['api_id'], cfg['api_hash'])
-    dispatchers.append((client, cfg))
+# Instantiate single client
+client = TelegramClient(SESSION['session_file'], SESSION['api_id'], SESSION['api_hash'])
 
-# Helpers
+# Helper function to shorten URLs
 async def shorten_url(url: str) -> str:
     """
     Shorten via TinyURL using up to three different API tokens.
@@ -98,49 +62,37 @@ async def shorten_url(url: str) -> str:
                         logging.warning(f"TinyURL ({token[:8]}…) returned no data: {data}")
         except Exception as e:
             logging.warning(f"TinyURL ({token[:8]}…) request failed: {e}")
+    return url  # Return original if all attempts fail
 
-    # all three failed → return original
-    return url
+# Authorize the single client
+async def authorize_client():
+    await client.connect()
+    if not await client.is_user_authorized():
+        logging.info(f"Sending OTP to {SESSION['name']} ({SESSION['phone']})")
+        await client.send_code_request(SESSION['phone'])
+        code = input(f"Enter code for {SESSION['name']} ({SESSION['phone']}): ")
+        try:
+            await client.sign_in(SESSION['phone'], code)
+        except SessionPasswordNeededError:
+            pw = input(f"2FA password for {SESSION['name']}: ")
+            await client.sign_in(password=pw)
+        me = await client.get_me()
+        logging.info(f"{SESSION['name']} logged in as {me.username or me.first_name}")
 
-
-def normalize_text(text: str) -> str:
-    """Remove URLs and join prompts, collapse whitespace for dedupe."""
-    text = LINK_PATTERN.sub('', text)
-    text = JOIN_PROMPT.sub('', text)
-    return ' '.join(text.split()).strip().lower()
-
-async def authorize_clients():
-    for client, cfg in dispatchers:
-        await client.connect()
-        if not await client.is_user_authorized():
-            logging.info(f"Sending OTP to {cfg['name']} ({cfg['phone']})")
-            await client.send_code_request(cfg['phone'])
-            code = input(f"Enter code for {cfg['name']} ({cfg['phone']}): ")
-            try:
-                await client.sign_in(cfg['phone'], code)
-            except SessionPasswordNeededError:
-                pw = input(f"2FA password for {cfg['name']}: ")
-                await client.sign_in(password=pw)
-            me = await client.get_me()
-            logging.info(f"{cfg['name']} logged in as {me.username or me.first_name}")
-
+# Set up message handler
 async def setup_handlers():
-    # Main handler
-    main_client, _ = next((c, cfg) for c, cfg in dispatchers if cfg['is_main'])
-
-    @main_client.on(events.NewMessage(chats=SOURCE_CHANNELS, incoming=True))
+    @client.on(events.NewMessage(chats=SOURCE_CHANNELS, incoming=True))
     async def main_handler(event):
         msg = event.message
-        # skip docs/videos
+        # Skip documents and videos
         if msg.document or msg.video:
             return
+        
         text = msg.text or msg.raw_text or ''
-        key = normalize_text(text)
-        if not key or key in processed_notices:
+        if not text:
             return
-        processed_notices.add(key)
 
-        # Process each URL
+        # Process URLs in the message
         async def process_text(txt: str) -> str:
             parts = []
             last = 0
@@ -155,39 +107,20 @@ async def setup_handlers():
 
         text = await process_text(text)
 
-        # Repost
+        # Repost to target channel
         if msg.photo:
-            file = await event.client.download_media(msg)
-            await event.client.send_file(TARGET_CHANNEL, file, caption=text, link_preview=False)
-            logging.info(f"Main reposted photo to {TARGET_CHANNEL}")
+            file = await client.download_media(msg)
+            await client.send_file(TARGET_CHANNEL, file, caption=text, link_preview=False)
+            logging.info(f"Reposted photo to {TARGET_CHANNEL}")
         else:
-            await event.client.send_message(TARGET_CHANNEL, text, link_preview=False)
-            logging.info(f"Main reposted text to {TARGET_CHANNEL}")
+            await client.send_message(TARGET_CHANNEL, text, link_preview=False)
+            logging.info(f"Reposted text to {TARGET_CHANNEL}")
 
-    # Booster handlers
-    for client, cfg in dispatchers:
-        if cfg['is_main']:
-            continue
-        name = cfg['name']
-
-        @client.on(events.NewMessage(chats=TARGET_CHANNEL, incoming=True))
-        async def forward_handler(event, client=client, name=name):
-            msg = event.message
-            async for dlg in client.iter_dialogs():
-                if not dlg.is_group:
-                    continue
-                try:
-                    await event.forward_to(dlg.entity)
-                    logging.info(f"{name} forwarded msg {msg.id} to group '{dlg.title}'")
-                except RPCError as e:
-                    logging.warning(f"{name} failed to forward to '{dlg.title}': {e}")
-                await asyncio.sleep(FORWARD_DELAY)
-
+# Main execution
 async def main():
-    await authorize_clients()
+    await authorize_client()
     await setup_handlers()
-    await asyncio.gather(*(client.run_until_disconnected() for client, _ in dispatchers))
+    await client.run_until_disconnected()
 
 if __name__ == '__main__':
     asyncio.run(main())
-    
